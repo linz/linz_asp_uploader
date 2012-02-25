@@ -1,0 +1,22 @@
+bin/linz_asp_uploader.pl
+bin/run_asp_upload
+Build.PL
+conf/linz_asp_uploader.conf
+conf/tables.conf
+debian/changelog
+debian/compat
+debian/control
+debian/copyright
+debian/files
+debian/postinst
+debian/rules
+inc/MyBuilder.pm
+lib/LINZ/ASPDatabase.pm
+lib/LINZ/ASPUpload.pm
+LICENSE
+Makefile.PL
+MANIFEST			This list of files
+README
+sql/asp_schema.sql
+sql/asp_schema_index.sql
+sql/version_asp_tables.sql

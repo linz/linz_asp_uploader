@@ -1,0 +1,98 @@
+= LINZ Authoritative Streets and Places (ASP) PostgreSQL Loader
+
+linz_asp_uploader is a programme for loading LINZ ASP files into a PostgreSQL
+database. linz_asp_uploader has the ability to apply datasets and determine the
+changeset with existing data if the linz_bde_uploader is installed.
+
+Copyright 2011 Crown copyright (c) Land Information New Zealand and the New
+Zealand Government.
+
+== Dependencies
+
+ * Perl 5.88 or greater, plus
+    - DBD::Pg
+    - Date::Calc
+    - LINZ::Config
+    - Archive::Extract
+    - URI::Fetch
+    - Cache::File
+    - Digest::MD5
+    - Log::Log4perl
+    - Log::Dispatch
+    - Log::Dispatch::FileRotate
+    - Log::Dispatch::Email::MailSender
+ * PostgreSQL 9.0 or greater, plus
+ * LINZ BDE uploader package (linz_bde_uploader)
+
+== Compatibility
+
+Tested on Ubuntu 10.4 (Lucid)
+
+== Install
+
+The main components to install are the perl packages, PostgreSQL database
+setup and config script and the actual linz_asp_uploader programme and
+configuration. The build install process handles this, however setup of the
+PostgreSQL user account, database, logging directory and configuration setup need
+to be done as manual task afterward.
+
+-- Simple install
+
+    perl Build.PL
+    ./build install
+    
+-- Advanced install options
+
+The build system is using perl Module::Build. A full list of the building
+options are available run:
+
+    ./build help
+    
+A more complex example involving specific install directories could something
+like:
+
+    perl Build.PL --prefix=/usr/local
+    ./build install
+or:
+
+    perl Build.PL \
+        --prefix=/usr \
+        --install_path conf=/my/conf/dir \
+        --install_path sql=/my/sql/dir
+
+== Configuration
+
+All parameters to setup and running of linz_asp_uploader can be found within the
+template conf file in conf/linz_asp_uploader.conf. Another important file is
+tables.conf which lists the ASP tables and their associated loading parameters.
+
+Key parameters to change in the linz_asp_uploader.conf config are:
+
+    asp_data_url: the url to the ASP zip file archive that is updated on the
+    linz website.
+
+    tmp_base_dir: This temp processing directory for downloading, uncompressing
+    and pre-processing ASP datafiles.
+
+    include_tables: A list of table to load for the run. These table must exist
+    in the in the file as defined by asp_tables_config (tables.conf by defualt)
+
+    smtpserver and smtpsender: The mail host and sender email address to send
+    completion or error reports to.
+
+    log_email_address: The email address ro addressed that the mail server will
+    send the completion or error reports to. multiple emails can be listing with
+    a "," separator.
+    
+
+== Running linz_asp_uploader
+
+A simple example to upload all available asp files into the database is:
+    
+    linz_asp_uploader -verbose -listing /var/log/linz-asp-uploader/linz_asp_uploader.log
+
+For more help about options for running linz_asp_uploader can be made available
+through the following command:
+    
+    linz_asp_uploader -help
+
