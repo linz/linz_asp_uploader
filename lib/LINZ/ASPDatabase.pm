@@ -216,7 +216,7 @@ sub startJob
     my ($self) = @_;
     if ( !$self->{_overrideLocks} )
     {
-        my $row = $self->_dbh->selectcol_arrayref("SELECT pg_try_advisory_lock($asp_magic_number)");
+        my $row = $self->selectArray("SELECT pg_try_advisory_lock($asp_magic_number)");
         if (!$$row[0])
         {
             die "An ASP uploader job is still in progress";
@@ -233,7 +233,7 @@ sub finishJob
     return if ! $self->{_jobCreated};
     $self->_runFinishSql;
     $self->_commitTransaction;
-    my $row = $self->_dbh->selectcol_arrayref("SELECT pg_advisory_unlock($asp_magic_number)");
+    my $row = $self->selectArray("SELECT pg_advisory_unlock($asp_magic_number)");
     if (!$$row[0])
     {
         die "Could not unlock ASP uploader job";

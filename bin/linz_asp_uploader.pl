@@ -55,14 +55,6 @@ GetOptions (
 
 help(1) if $showhelp;
 
-my $of;
-if($listing_file)
-{
-    open($of, ">", $listing_file) ||
-        die "Can't not write to listing file $listing_file: $!\n";
-    select($of);
-};
-
 eval
 {
     my $options = 

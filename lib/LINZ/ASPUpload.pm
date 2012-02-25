@@ -298,6 +298,7 @@ sub ApplyUpdates
 {
     my($self) = @_;
     
+    INFO("Starting download of ASP data");
     my $filename = basename($self->cfg->asp_data_url);
     my $filepath = File::Spec->catdir($self->cfg->tmp_base_dir, $filename);
     my $cache_dir = File::Spec->catdir($self->cfg->tmp_base_dir, 'cache');
@@ -308,7 +309,7 @@ sub ApplyUpdates
         || die URI::Fetch->errstr;
     
     if ($res->status == URI::Fetch::URI_OK()) {
-        DEBUG("File successfully downloaded");
+        INFO("ASP data successfully downloaded");
     }
     elsif ($res->status == URI::Fetch::URI_NOT_MODIFIED())
     {
@@ -346,17 +347,19 @@ sub ApplyUpdates
 
     eval 
     {
-        $self->startJob($filepath);
-        foreach my $t ( $self->dataset->tables )
+        if ($self->startJob($filepath))
         {
-            my $file = $t->file;
-            if ( !exists $files{$file} )
+            foreach my $t ( $self->dataset->tables )
             {
-                LOGDIE("Can't find table dataset file $file");
+                my $file = $t->file;
+                if ( !exists $files{$file} )
+                {
+                    LOGDIE("Can't find table dataset file $file");
+                }
+                $self->updateTable($t, $files{$file});
             }
-            $self->updateTable($t, $files{$file});
+            $self->finishJob;
         }
-        $self->finishJob;
     };
     if ($@)
     {
@@ -383,7 +386,6 @@ sub startJob
     my $file_path = shift;
     my $table_name = 'upload_detail';
     my $schema = $self->cfg->asp_schema;
-    $self->db->startJob;
     
     my $sql = q(
         SELECT true
@@ -416,17 +418,21 @@ sub startJob
         WHERE archive_filename = ?
         AND archive_md5 = ?
     );
-    my @row = $self->db->selectArray($sql, {}, $file_name, $sum);
+    @row = $self->db->selectArray($sql, {}, $file_name, $sum);
     if ($row[0])
     {
-        die "ASP dataset file $file_name has laready been applied. md5_sum: $sum";
+        INFO("ASP dataset file $file_name has already been applied. MD5 sum: $sum");
+        return 0;
     }
+    
+    $self->db->startJob;
     $sql = qq(
         INSERT INTO $schema.$table_name(archive_filename, archive_md5)
         VALUES (?, ?) RETURNING id
     );
-    $self->db->selectArray($sql, {}, $file_name, $sum);
+    @row = $self->db->selectArray($sql, {}, $file_name, $sum);
     $self->startVersion;
+    return 1;
 }
 
 sub finishJob
@@ -511,7 +517,8 @@ sub updateTable
     my ($self, $table, $file) = @_;
     my $table_name = $table->name;
     my $schema = $self->cfg->asp_schema;
-    INFO("Starting update $schema.$table_name");
+    my $full_table_name = "${schema}.${table_name}";
+    INFO("Starting update $full_table_name");
         
     my $sql = q(
         SELECT true
@@ -534,46 +541,71 @@ sub updateTable
     my @header_cols = split  /\|/, $header;
     close FILE;
     
-    if ($self->diffFunctionExists)
+    $load_table = "tmp_${table_name}";
+    $sql = qq(
+        SELECT
+            ATT.attname as column,
+            format_type(ATT.atttypid, ATT.atttypmod) as datatype,
+            ATT.attnotnull
+        FROM
+            pg_attribute ATT
+        WHERE
+            ATT.attnum > 0 AND
+            NOT ATT.attisdropped AND
+            ATT.attrelid = '$full_table_name'::REGCLASS
+    );
+    $db_table_cols = $self->db->selectAllHash($sql, 'column');
+    
+    $sql = '';
+    foreach my $col (@header_cols)
     {
-        $load_table = "tmp_${table_name}";
-        $sql = qq(
-            SELECT
-                ATT.attname as column,
-                format_type(ATT.atttypid, ATT.atttypmod) as datatype,
-                ATT.attnotnull
-            FROM
-                pg_attribute ATT
-            WHERE
-                ATT.attnum > 0 AND
-                NOT ATT.attisdropped AND
-                ATT.attrelid = '$schema.$table_name'::REGCLASS
-        );
-        $db_table_cols = $self->db->selectAllHash($sql, 'column');
-        
-        $sql = '';
-        foreach my $col (@header_cols)
-        {
-            my $col_def = $db_table_cols->{$col};
-            LOGDIE("$col from $file does not exist in database table $table_name")
-                unless $col_def;
-            $sql .= ", " if $sql ne '';
-            $sql .= $col_def->{column} .' '. $col_def->{datatype};
-            $sql .= " NOT NULL" if $col_def->{attnotnull};
-        }
-        $sql = "CREATE TABLE $load_table ( $sql );";
-        $self->db->do($sql);
+        my $col_def = $db_table_cols->{$col};
+        LOGDIE("$col from $file does not exist in database table $full_table_name")
+            unless $col_def;
+        $sql .= ", " if $sql ne '';
+        $sql .= $col_def->{column} .' '. $col_def->{datatype};
+        $sql .= " NOT NULL" if $col_def->{attnotnull};
     }
-    else
-    {
-        $self->db->do("TRUNCATE TABLE $table_name");
-        $load_table = "$schema.$table_name";
-    }
+    $sql = "CREATE TEMP TABLE $load_table ( $sql );";
+    $self->db->do($sql);
     
     $sql = "COPY $load_table (". join(', ', @header_cols) . ") FROM '" .
         $file . "' DELIMITERS '|' CSV HEADER NULL AS ''";
     $self->db->do($sql);
     $self->db->do("ANALYSE $load_table");
+    
+    my $new_count = ($self->db->selectArray("SELECT count(*) FROM $load_table"))[0];
+    my $current_count = ($self->db->selectArray("SELECT count(*) FROM $full_table_name"))[0];
+    my $tol_error = $table->row_tol_error;
+    my $tol_warn = $table->row_tol_warning;
+    if (defined $tol_error)
+    {
+        my $expected = $current_count * $tol_error;
+        if ($new_count < $expected)
+        {
+            my $msg = "New data for $full_table_name has $new_count rows, ".
+                "when at least $expected are expected";
+            if ($self->cfg->force)
+            {
+                WARN($msg);
+            }
+            else
+            {
+                ERROR($msg);
+                $self->_cleanUpTableLoad($load_table, $file);
+                return 0;
+            }
+        }
+    }
+    if (defined $tol_warn)
+    {
+        my $expected = $current_count * $tol_warn;
+        if ($new_count < $expected)
+        {
+            WARN("New data for $full_table_name has $new_count rows, ".
+                  "when at least $expected are expected");
+        }
+    }
     
     if ($self->diffFunctionExists)
     {
@@ -616,14 +648,53 @@ sub updateTable
             "NULL, '${schema}.${table_name}'::REGCLASS, '${load_table}'::REGCLASS," .
             "'$compare_key')";
         $self->db->do($sql);
-        $self->db->do("DROP TABLE $load_table");
     }
-    
+    else
+    {
+        $self->db->do("TRUNCATE TABLE $full_table_name");
+        
+        my $seq_name = "${table_name}_id_seq";
+        $sql = qq(
+            select
+                true
+            from
+                pg_class cls,
+                pg_namespace nsp
+            where
+                cls.relname = ? and
+                cls.relkind = 'S' and
+                cls.relnamespace = nsp.oid and
+                nsp.nspname = ?
+        );
+        
+        @row = $self->db->selectArray($sql, {}, $seq_name, $schema);
+        if ($row[0])
+        {
+            $self->db->do("ALTER SEQUENCE ${schema}.${seq_name} RESTART WITH 1");
+        }
+
+        my $col_list = join(', ', @header_cols);
+        $sql = qq(
+            INSERT INTO $full_table_name ($col_list)
+            SELECT $col_list FROM $load_table
+        );
+    }
+    $self->db->do("ANALYSE $full_table_name");
+    $self->_cleanUpTableLoad($load_table, $file);
+    INFO ("$full_table_name has been updated");
+    return 1;
+}
+
+sub _cleanUpTableLoad
+{
+    my $self = shift;
+    my $load_table = shift;
+    my $file = shift;
+    $self->db->do("DROP TABLE $load_table");
     if (!$self->{keepfiles})
     {
         unlink $file || die "Can't delete file $file $!";
     }
-    INFO ("$schema.$table_name has been updated");
 }
 
 1;

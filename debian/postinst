@@ -20,6 +20,7 @@ LDS_PACKAGE=linz-asp-uploader
 LDS_SHARE_DIR=/usr/share/$LDS_PACKAGE
 LDS_LOG_DIR=/var/log/$LDS_PACKAGE
 PG_USER=postgres
+LDS_USER=lds_bde
 DB=bde_db
 PG_SERVICE=postgresql
 PG_INIT=/etc/init.d/$PG_SERVICE
