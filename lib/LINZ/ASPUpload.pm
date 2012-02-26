@@ -400,7 +400,8 @@ sub startJob
             CREATE TABLE $schema.$table_name (
                 id SERIAL NOT NULL PRIMARY KEY,
                 archive_filename TEXT NOT NULL,
-                archive_md5 TEXT NOT NULL
+                archive_md5 TEXT NOT NULL,
+                upload_time timestamp without time zone NOT NULL DEFAULT clock_timestamp()
             )
         );
         $self->db->do($sql);
