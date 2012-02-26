@@ -4,7 +4,7 @@
 --
 -- linz_asp_uploader -  LINZ ASP loader for PostgreSQL
 --
--- Copyright 2011 Crown copyright (c)
+-- Copyright 2012 Crown copyright (c)
 -- Land Information New Zealand and the New Zealand Government.
 -- All rights reserved
 --

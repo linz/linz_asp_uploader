@@ -4,7 +4,7 @@
 #
 # linz_asp_uploader -  LINZ ASP loader for PostgreSQL
 #
-# Copyright 2011 Crown copyright (c)
+# Copyright 2012 Crown copyright (c)
 # Land Information New Zealand and the New Zealand Government.
 # All rights reserved
 #
@@ -575,6 +575,7 @@ sub updateTable
     $self->db->do($sql);
     $self->db->do("ANALYSE $load_table");
     
+    my $tol_reached = 0;
     my $new_count = ($self->db->selectArray("SELECT count(*) FROM $load_table"))[0];
     my $current_count = ($self->db->selectArray("SELECT count(*) FROM $full_table_name"))[0];
     my $tol_error = $table->row_tol_error;
@@ -589,6 +590,7 @@ sub updateTable
             if ($self->cfg->force)
             {
                 WARN($msg);
+                $tol_reached = 1;
             }
             else
             {
@@ -598,7 +600,7 @@ sub updateTable
             }
         }
     }
-    if (defined $tol_warn)
+    if (!$tol_reached && defined $tol_warn)
     {
         my $expected = $current_count * $tol_warn;
         if ($new_count < $expected)

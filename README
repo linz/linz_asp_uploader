@@ -4,7 +4,7 @@ linz_asp_uploader is a programme for loading LINZ ASP files into a PostgreSQL
 database. linz_asp_uploader has the ability to apply datasets and determine the
 changeset with existing data if the linz_bde_uploader is installed.
 
-Copyright 2011 Crown copyright (c) Land Information New Zealand and the New
+Copyright 2012 Crown copyright (c) Land Information New Zealand and the New
 Zealand Government.
 
 == Dependencies
