@@ -56,7 +56,7 @@ fi
 
 SQL_FILES="
     $LDS_SHARE_DIR/sql/asp_schema.sql
-    $LDS_SHARE_DIR/sql/asp_schema_index.sql
+    $LDS_SHARE_DIR/sql/patches.sql
 "
 
 for SQL_FILE in $SQL_FILES
