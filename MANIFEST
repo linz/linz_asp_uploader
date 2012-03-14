@@ -20,4 +20,3 @@ sql/asp_schema.sql
 sql/asp_schema_index.sql
 sql/version_asp_tables.sql
 sql/patches.sql
-META.yml
