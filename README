@@ -39,20 +39,29 @@ to be done as manual task afterward.
 -- Simple install
 
     perl Build.PL
-    ./build install
+    ./Build install
     
+-- Install dependencies (optional)
+
+The build script will probably complain about dependencies and ask you to run 
+./Build installdeps. The build script then attempts to fetch these from
+CPAN. If Perl configures itself automatically it will identify ftp 
+hosts that cannot be accessed. Edit your ~/.cpan/CPAN/MyConfig.pm file 
+adding http hosts to the urllist as required. Try http://mirrors.cpan.org/ 
+for a list of these.
+ 
 -- Advanced install options
 
 The build system is using perl Module::Build. A full list of the building
 options are available run:
 
-    ./build help
+    ./Build help
     
 A more complex example involving specific install directories could something
 like:
 
     perl Build.PL --prefix=/usr/local
-    ./build install
+    ./Build install
 or:
 
     perl Build.PL \
