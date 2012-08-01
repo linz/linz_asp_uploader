@@ -1,3 +1,9 @@
+linz-asp-uploader (1.0.1-1) UNRELEASED; urgency=low
+
+  * Correctly set permissions for ASP tables
+
+ -- Jeremy Palmer <jpalmer@linz.govt.nz>  Wed, 01 Aug 2012 13:59:16 +1200
+
 linz-asp-uploader (1.0.0-1) UNRELEASED; urgency=low
 
   * Initial release.
