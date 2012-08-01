@@ -36,3 +36,32 @@ CREATE INDEX idx_asp_street_part_street_sufi on street_part (street_sufi);
 '
 );
 
+SELECT _patches.apply_patch(
+    'ASP - 1.0.1: Fix ASP table permissions',
+    '
+DO $RIGHTS$
+DECLARE
+   v_table     NAME;
+BEGIN
+    FOR v_table IN
+        SELECT
+            NSP.nspname || ''.'' || CLS.relname
+        FROM
+            pg_class CLS,
+            pg_namespace NSP
+        WHERE
+            CLS.relnamespace = NSP.oid AND
+            NSP.nspname IN (''asp'') AND
+            CLS.relkind = ''r''
+        ORDER BY
+            1
+    LOOP
+        EXECUTE ''ALTER TABLE '' || v_table || '' OWNER TO bde_dba'';
+        EXECUTE ''GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE '' || v_table || '' TO bde_admin'';
+        EXECUTE ''GRANT SELECT ON TABLE '' || v_table || '' TO bde_user'';
+    END LOOP;
+END;
+$RIGHTS$
+'
+);
+
