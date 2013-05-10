@@ -1,3 +1,9 @@
+linz-asp-uploader (1.0.2-1) lucid; urgency=low
+
+  * Rebuild ASP table primary keys using versioned table column key
+
+ -- Jeremy Palmer <jpalmer@linz.govt.nz>  Sat, 11 May 2013 08:32:54 +1200
+
 linz-asp-uploader (1.0.1-1) UNRELEASED; urgency=low
 
   * Correctly set permissions for ASP tables

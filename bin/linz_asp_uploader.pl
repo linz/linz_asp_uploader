@@ -15,7 +15,7 @@
 ################################################################################
 use strict;  
 
-our $VERSION = '1.0.1';
+our $VERSION = '1.0.2';
 
 use FindBin;
 use lib $FindBin::Bin;
