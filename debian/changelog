@@ -1,3 +1,10 @@
+linz-asp-uploader (1.0.3-1) lucid; urgency=low
+
+  * Fixed bug relating to 5092535ece where schema prefix was not being
+    explicitly used in patch
+
+ -- Jeremy Palmer <jpalmer@linz.govt.nz>  Wed, 15 May 2013 14:49:58 +1200
+
 linz-asp-uploader (1.0.2-1) lucid; urgency=low
 
   * Rebuild ASP table primary keys using versioned table column key
